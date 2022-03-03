@@ -1,0 +1,197 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <title>Creando un primer juego en Phaser - Parte 4</title>
+    <script src="//cdn.jsdelivr.net/npm/phaser@3.11.0/dist/phaser.js"></script>
+    <style type="text/css">
+        body {
+            margin: 0;
+        }
+    </style>
+</head>
+<body>
+
+<script type="text/javascript">
+
+    var config = {
+        type: Phaser.AUTO,
+        width: 850,
+        height: 600,
+        physics: {
+            default: 'arcade',
+            arcade: {
+                gravity: { y: 300 },
+                debug: false
+            }
+        },
+        scene: {
+            preload: preload,
+            create: create,
+            update: update
+        }
+    };
+
+    var player;
+    var pejecoins;
+    var platforms;
+    var cursors;
+    var puntaje = 0;
+    var puntajeText;
+    var paletaText;
+    var chocolateText;
+    var abrazoText;
+
+    var game = new Phaser.Game(config);
+
+    function preload ()
+    {
+      this.load.image('hills', 'Assets/hills_850x600.png');
+      this.load.image('ground', 'Assets/platform.png');
+      this.load.image('pejecoin', 'Assets/pejecoin_50x50.png');
+      this.load.image('bomb', 'Assets/bomb.png');
+      this.load.spritesheet('character', 'Assets/character3.png', { frameWidth: 32, frameHeight: 32 });
+    }
+
+    function create ()
+    {
+        this.add.image(425, 300, 'hills');
+
+        platforms = this.physics.add.staticGroup();
+
+        platforms.create(425, 568, 'ground').setScale(2).refreshBody();
+
+        platforms.create(650, 350, 'ground');
+        platforms.create(0, 180, 'ground');
+        platforms.create(100, 450, 'ground');
+        platforms.create(750, 180, 'ground');
+
+        player = this.physics.add.sprite(100, 450, 'character').setScale(1.5);
+        player.setBounce(0.2);
+        player.setCollideWorldBounds(true);
+
+        this.anims.create({
+            key: 'left',
+            frames: this.anims.generateFrameNumbers('character', { start: 0, end: 1 }),
+            frameRate: 10,
+            repeat: -1
+        });
+
+        this.anims.create({
+            key: 'turn',
+            frames: [ { key: 'character', frame: 3 } ],
+            frameRate: 20
+        });
+
+        this.anims.create({
+            key: 'right',
+            frames: this.anims.generateFrameNumbers('character', { start: 3, end: 5 }),
+            frameRate: 10,
+            repeat: -1
+        });
+
+        this.physics.add.collider(player, platforms);
+
+        cursors = this.input.keyboard.createCursorKeys();
+
+        pejecoins = this.physics.add.group({
+            key: 'pejecoin',
+            repeat: 11,
+            setXY: { x: 35, y: 0, stepX: 70 }
+        });
+
+        pejecoins.children.iterate(function (child) {
+
+            child.setBounceY(Phaser.Math.FloatBetween(0.4, 0.8));
+
+        });
+
+        this.physics.add.collider(pejecoins, platforms);
+
+        this.physics.add.overlap(player, pejecoins, collectPejecoin, null, this);
+
+
+
+        puntajeText = this.add.text(16, 16, 'Puntaje: 0', { fontSize: '32px', fill: '#000' });
+
+        bombs = this.physics.add.group();
+
+        this.physics.add.collider(bombs, platforms);
+
+        this.physics.add.collider(player, bombs, hitBomb, null, this);
+
+    }
+
+    function collectPejecoin (player, pejecoin){
+        pejecoin.disableBody(true, true);
+
+        puntaje += 10;
+        puntajeText.setText('Puntaje: ' + puntaje);
+
+        if(puntaje == 120){
+          paletaText = this.add.text(500, 16, 'Felicidades!! Te has ganado una paleta :D', { fontSize: '11px', fill: '#000' });
+        }
+        if(puntaje == 240){
+          chocolateText = this.add.text(500, 30, 'Felicidades!! Te has ganado un chocolate :)', { fontSize: '11px', fill: '#000' });
+        }
+        if(puntaje == 360){
+          abrazoText = this.add.text(500, 44, 'Felicidades!! Te has ganado un abrazo :3', { fontSize: '11px', fill: '#000' });
+        }
+
+        if (pejecoins.countActive(true) === 0){
+          pejecoins.children.iterate(function (child) {
+
+              child.enableBody(true, child.x, 0, true, true);
+
+          });
+
+        var x = (player.x < 400) ? Phaser.Math.Between(400, 800) : Phaser.Math.Between(0, 400);
+
+        var bomb = bombs.create(x, 16, 'bomb').setScale(1.5);
+        bomb.setBounce(1);
+        bomb.setCollideWorldBounds(true);
+        bomb.setVelocity(Phaser.Math.Between(-200, 200), 20);
+
+        }
+
+    }
+
+    function hitBomb (player, bomb){
+        this.physics.pause();
+
+        player.setTint(0xff0000);
+
+        player.anims.play('turn');
+
+        gameOver = true;
+    }
+
+    function update (){
+
+        if (cursors.left.isDown){
+            player.setVelocityX(-160);
+
+            player.anims.play('left', true);
+        } else if (cursors.right.isDown){
+            player.setVelocityX(160);
+
+            player.anims.play('right', true);
+        } else {
+            player.setVelocityX(0);
+
+            player.anims.play('turn');
+        }
+
+        if (cursors.up.isDown && player.body.touching.down){
+            player.setVelocityY(-330);
+        }
+        if (player.body.touching.down == false && cursors.down.isDown){
+            player.setVelocityY(200);
+        }
+
+    }
+
+</script>
+
+</body>
+</html>
